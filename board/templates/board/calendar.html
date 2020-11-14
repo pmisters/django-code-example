@@ -1,0 +1,316 @@
+{% extends "./__base.html" %}
+{% load et_i18n board_tags members_tags %}
+
+{% block page-title %}{% trans "agenda:page:title" %} :: {{ house.name }} :: {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">{% trans "common:home:breadcrumb" %}</a></li>
+    <li class="breadcrumb-item active">{% trans "agenda:page:title" %}</li>
+  </ol>
+{% endblock breadcrumb %}
+
+{% block page-content %}
+  <h1 class="h3 mb-3">{% trans "agenda:page:title" %}</h1>
+  <div class="row">
+    <div class="col">
+      <div class="agenda">
+        <div class="agenda__selector">
+          <div class="agenda__dates">
+            <button type="button" class="btn btn-outline-primary" data-toggle="datesingle">
+              <i class="fas fa-calendar-alt mr-1"></i> {% trans "agenda:page:selector_date" %}
+            </button>
+          </div>
+          <div class="agenda__rooms darr">
+            {% trans "agenda:page:selector_rooms" %}
+            {% ifperms user PERMISSIONS.houses.ROOMTYPE_CREATE|PERMISSIONS.channels.STOP_SALE house %}
+              <span class="roomtype__icon btn btn-link btn-sm" tabindex="0" role="button" data-type="roomtypes">
+                <i class="align-middle fas fa-fw fa-sign-out-alt"></i>
+              </span>
+            {% endifperms %}
+          </div>
+        </div> <!--//.agenda__selector -->
+
+        <div class="agenda__sidebar">
+          {% for item in structure|dictsort:"name" %}
+            <div class="agenda__rooms darr agenda__roomtype" data-roomtype="{{ item.room_type.id }}">
+              {{ item.room_type.name }}
+              <span class="roomtype__icon btn btn-link btn-sm" tabindex="0" role="button" data-type="roomtype"
+                    data-pk="{{ item.room_type.id }}"
+                    data-stop="{{ item.room_type.stop_sale|yesno:'true,false' }}"
+                    data-prices="{% url 'house-prices:prices' hid=house.id rid=item.room_type.id %}"
+                    data-rooms="{% url 'houses:rooms' hid=house.id rid=item.room_type.id %}"
+                    data-restrictions="{% url 'restrictions:restrictions' hid=house.id rid=item.room_type.id %}"
+                    data-channels="{% url 'channels:connections' hid=house.id rid=item.room_type.id %}"
+                    data-discounts="{% url 'discounts:discounts' hid=house.id rid=item.room_type.id %}"
+                    data-close="{% url 'houses:room-type-restrictions' hid=house.id rid=item.room_type.id %}"
+              >
+                <i class="align-middle fas fa-fw fa-sign-out-alt"></i>
+              </span>
+              {% comment %}
+              <span class="roomtype__icon roomtype__icon--overflow btn btn-sm text-danger">
+                <i class="align-middle fas fa-fw fa-exclamation-circle"></i>
+              </span>
+              {% endcomment %}
+              {% if item.room_type.stop_sale %}
+                <span class="roomtype__icon roomtype__icon--overflow btn btn-sm text-danger" rel="tooltip" title="{% trans 'agenda:page:roomtype_stop_sale_hint' %}">
+                  <i class="align-middle fas fa-fw fa-stop-circle"></i>
+                </span>
+              {% endif %}
+            </div>
+            {% for room in item.rooms|dictsort:"name" %}
+              <div class="agenda__room room" data-room="{{ room.id }}">
+                <div class="agenda__tags">
+                  <div class="room__number">{{ room.name }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          {% endfor %}
+        </div> <!--//.agenda__sidebar -->
+
+        <div class="agenda__calendar">
+          <div class="agenda__header">
+            {% for month, days in dates.items %}
+              <div class="agenda__month month">
+                <div class="month__header">
+                  <div class="month__header--overflow">{% trans_month month %}</div>
+                </div>
+                {% for day in days %}
+                  <div class="month__date">
+                    <div class="month__day">{{ day|date:'j' }}</div>
+                    <div class="month__wday">{% trans_week day|date:'w' %}</div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endfor %}
+          </div> <!--//.agenda__header -->
+
+          <div class="agenda__cols">
+            {% for month, days in dates.items %}
+              {% for day in days %}
+                <div class="agenda__col{% if day|is_holiday %} agenda__col--holiday{% endif %}">
+                  {% if day|is_today %}<div class="col__today"></div>{% endif %}
+                </div>
+              {% endfor %}
+            {% endfor %}
+          </div> <!--//.agenda__cols -->
+
+          <div class="agenda__content" style="width: {% calendar_content_width dates %}">
+            <table class="agenda__table">
+              {% for item in structure|dictsort:"name" %}
+                <tbody class="agenda__tbody tbody--category">
+                  <tr class="agenda__trow" data-roomtype="{{ item.room_type.id }}">
+                    {% for month, days in dates.items %}
+                      {% for day in days %}
+                        <td class="agenda__cell">
+                          <div class="agenda__occupancy" data-occupancy="{{ item.room_type.id }}-{{ day|date:"Ymd" }}">0</div>
+                        </td>
+                      {% endfor %}
+                    {% endfor %}
+                  </tr>
+                </tbody>
+                {% for room in item.rooms|dictsort:"name" %}
+                  <tbody class="agenda__tbody">
+                    <tr class="agenda__trow agenda__trow--room" data-room="{{ room.id }}">
+                      {% for month, days in dates.items %}
+                        {% for day in days %}
+                          <td class="agenda__cell"></td>
+                        {% endfor %}
+                      {% endfor %}
+                    </tr>
+                  </tbody>
+                {% endfor %}
+              {% endfor %}
+            </table>
+
+            <div style="position: absolute; top: 89px; right: 0; bottom: 0; left: 0">
+              {% for item in structure|dictsort:"name" %}
+                <div class="agenda-grid agenda-grid__roomtype" data-type="roomtype" data-pk="{{ item.room_type.id }}"></div>
+                {% for room in item.rooms|dictsort:"name" %}
+                  <div class="agenda-grid agenda-grid__room" data-type="room" data-pk="{{ room.id }}"></div>
+                {% endfor %}
+              {% endfor %}
+            </div>
+
+          </div> <!--//.agenda__content -->
+        </div> <!--//.agenda__calendar -->
+      </div> <!--//.agenda -->
+    </div>
+  </div>
+
+  <!-- Modal for Close Room Reservation -->
+  <div id="id_closeroom_modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="id_closeroom_modal_title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="id_closeroom_modal_title">{% trans "agenda:top:close_room" %}</h3>
+          <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'common:btn:close' %}">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form action="{% url 'board:update-close' hid=house.id %}" method="post" class="room-form" onsubmit="return false">
+            {% csrf_token %}
+            <div><input type="hidden" name="pk" value=""/></div>
+            <div class="form-group row">
+              <label for="id_period" class="col-form-label col-md-2">{% trans "agenda:period:label" %}</label>
+              <div class="col-md-5">
+                <input type="text" id="id_period" name="period" value="" class="form-control"/>
+              </div>
+              <label for="id_nights" class="col-form-label col-md-1">{% trans "agenda:nights:label" %}</label>
+              <div class="col-md-4">
+                <p id="id_nights" class="form-control-plaintext">---</p>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="id_room" class="col-form-label col-md-2">{% trans "agenda:room:label" %}</label>
+              <div class="col-md-5">
+                <select id="id_room" name="room" class="custom-select">
+                  <option value=""></option>
+                  {% for value, name in close_rooms %}
+                    <option value="{{ value }}">{{ name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="id_status" class="col-form-label col-md-2">{% trans "agenda:status:label" %}</label>
+              <div class="col-md-5">
+                <select id="id_status" name="status" class="custom-select">
+                  <option value=""></option>
+                  {% for value, name in close_reasons %}
+                    <option value="{{ value }}">{{ name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="id_notes" class="col-form-label col-md-2">{% trans "agenda:notes:label" %}</label>
+              <div class="col-md-10">
+                <input type="text" id="id_notes" name="notes" value="" class="form-control"/>
+              </div>
+            </div>
+          </form>
+
+        </div> <!--//.modal-body -->
+        <div class="modal-footer d-flex">
+          <button type="button" class="btn btn-danger mr-auto" onclick="AgendaJS.deleteRoomClose('#id_closeroom_modal')">{% trans "agenda:btn:open_room" %}</button>
+          <button type="button" class="btn btn-success" onclick="AgendaJS.saveCloseRoomReservation('#id_closeroom_modal')">{% trans "agenda:btn:confirm" %}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!--// Modal for Room Close Reservation -->
+
+{% endblock page-content %}
+
+{% block head-scripts %}
+  {{ block.super }}
+  <script>
+  AGENDA_CONFIG.date = "{{ base_date|date:'Y-m-d' }}";
+  AGENDA_CONFIG.URL.OCCUPANCIES_URL = "{% url 'board:occupancies-json' hid=house.id %}";
+  AGENDA_CONFIG.URL.RESERVATIONS_URL = "{% url 'board:reservations-json' hid=house.id %}";
+  AGENDA_CONFIG.URL.RESERVATION_MOVE_URL = "{% url 'board:move-reservation' hid=house.id %}";
+  {% ifperms user PERMISSIONS.board.RESERVATION_DELETE house %}
+    AGENDA_CONFIG.URL.RESERVATION_DEL_URL = "{% url 'board:delete-close' hid=house.id %}";
+    AGENDA_CONFIG.MSG.RESERVATION_DEL_ASK = "{% trans 'agenda:page:close_delete_ask' %}";
+    AGENDA_CONFIG.MSG.RESERVATION_DEL_OK = "{% trans 'agenda:page:close_delete_success' %}";
+  {% endifperms %}
+  AGENDA_CONFIG.MSG.ROOMTYPE_SALE_STOP_ASK = "{% trans 'agenda:page:roomtype_sale_stop_ask' %}";
+  AGENDA_CONFIG.MSG.ROOMTYPE_SALE_OPEN_ASK = "{% trans 'agenda:page:roomtype_sale_open_ask' %}";
+  AGENDA_CONFIG.MSG.ROOMTYPE_SALE_STOP = "{% trans 'agenda:page:roomtype_sale_stop' %}";
+  AGENDA_CONFIG.MSG.ROOMTYPE_SALE_OPEN = "{% trans 'agenda:page:roomtype_sale_open' %}";
+  AGENDA_CONFIG.MSG.RESERVATION_MOVE_OK = "{% trans 'agenda:page:move_success' %}";
+  AGENDA_CONFIG.MSG.RESERVATION_SAVE_OK = "{% trans 'agenda:top:success_save' %}";
+  AGENDA_CONFIG.MSG.RESERVATION_SAVE_ERROR = "{% trans 'agenda:top:save_error' %}";
+  </script>
+{% endblock head-scripts %}
+
+{% block source-scripts %}
+  {{ block.super }}
+  <script>
+    function agenda_roomtype_menu(el) {
+      console.log(el);
+      return "OK";
+    }
+
+    $(function(){
+      $("[rel=tooltip]").tooltip();
+
+      $("button[data-toggle=datesingle]").daterangepicker({
+				singleDatePicker: true,
+				showDropdowns: true,
+        timePicker: false
+			}).on('apply.daterangepicker', (ev, picker) => {
+        window.location.assign("{% url 'board:board' hid=house.id %}?sd=" + picker.startDate.format("YYYY-MM-DD"));
+      });
+
+      $("[data-type=roomtypes]").popover({
+        html: true,
+        content: function(ev) {
+          let content = "";
+          {% ifperms user PERMISSIONS.houses.ROOMTYPE_CREATE house %}
+            content += '<a href="{% url 'houses:room-types' pk=house.id %}" class="btn btn-pill btn-success">{% trans "agenda:btn:room_types" %}</a> &nbsp; ';
+          {% endifperms %}
+          {% ifperms user PERMISSIONS.channels.STOP_SALE house %}
+            content += '<a href="#" class="btn btn-pill btn-danger">Stop Sale</a>';
+          {% endifperms %}
+          return '<div class="roomtype__menu">' + content + '</div>';
+        },
+        trigger: "focus"
+      });
+
+      const myWhiteList = $.fn.tooltip.Constructor.Default.whiteList;
+      myWhiteList.button = ["onclick"];
+      $("[data-type=roomtype]").popover({
+        html: true,
+        whiteList: myWhiteList,
+        content: function(ev) {
+          return (
+            "<div class=\"roomtype__menu\">"
+          {% ifperms user PERMISSIONS.house_prices.RATE_READ house %}
+            + '<a href="'+$(this).data("prices")+'" class="btn btn-pill btn-info">{% trans "agenda:btn:rates" %}</a> &nbsp; '
+          {% endifperms %}
+          {% ifperms user PERMISSIONS.houses.ROOM_READ house %}
+            + '<a href="'+$(this).data("rooms")+'" class="btn btn-pill btn-success">{% trans "agenda:btn:rooms" %}</a> &nbsp; '
+          {% endifperms %}
+          {% ifperms user PERMISSIONS.restrictions.RESTRICTION_READ house %}
+            + '<a href="'+$(this).data("restrictions")+'" class="btn btn-pill btn-note">{% trans "agenda:btn:restrictions" %}</a> &nbsp; '
+          {% endifperms %}
+          {% ifperms user PERMISSIONS.channels.CONNECTION_READ house %}
+            + '<a href="'+$(this).data("channels")+'" class="btn btn-pill btn-primary">{% trans "agenda:btn:channels" %}</a> &nbsp; '
+          {% endifperms %}
+          {% ifperms user PERMISSIONS.discounts.DISCOUNT_READ house %}
+            + '<a href="'+$(this).data("discounts")+'" class="btn btn-pill btn-warning">{% trans "agenda:btn:discounts" %}</a> &nbsp; '
+          {% endifperms %}
+          {% ifperms user PERMISSIONS.houses.ROOMTYPE_UPDATE house %}
+            {% ifperms user PERMISSIONS.restrictions.RESTRICTION_UPDATE house %}
+              + '<button type="button" class="btn btn-pill btn-danger" onclick="AgendaJS.toggleRoomTypeSale(\''+$(this).data("close")+'\', '+$(this).data("pk")+', \''+(!$(this).data('stop'))+'\')">'+($(this).data('stop') ? "{% trans 'agenda:btn:open_sale' %}" : "{% trans 'agenda:btn:stop_sale' %}")+'</button>'
+            {% endifperms %}
+          {% endifperms %}
+            + "</div>"
+          );
+        },
+        trigger: "focus"
+      });
+
+      {% ifperms user PERMISSIONS.board.RESERVATION_UPDATE %}
+        // Initialize date picker for Close Room modal
+        $("#id_closeroom_modal input[name=period]").daterangepicker({
+          showDropdowns: false,
+          timePicker: false,
+          locale: {format: "DD/MM/YYYY", firstDay: 1},
+        });
+        $("#id_closeroom_modal input[name=period]").on("apply.daterangepicker", (ev, picker) => {
+          ETJS.calcReservationNights($("#id_closeroom_modal"), picker);
+        });
+        ETJS.initReservationValidation("#id_closeroom_modal");
+      {% endifperms %}
+
+      // Initialize grid and load data
+      AgendaJS.initGrid();
+      AgendaJS.loadOccupancies("{{ base_date|date:'Y-m-d' }}");
+      AgendaJS.loadReservations("{{ base_date|date:'Y-m-d' }}");
+    });
+  </script>
+{% endblock source-scripts %}

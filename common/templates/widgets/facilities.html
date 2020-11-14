@@ -1,0 +1,35 @@
+{% with id=widget.attrs.id %}
+  <div class="accordion" id="{{ id }}_group">
+    {% for group, options, index in widget.optgroups %}
+      {% if group %}
+        <div class="card card--no-shadow">
+          <div class="card-header" id="{{ id }}_{{ index }}_header">
+            <h5 class="card-title my-2">
+              <a href="#" data-toggle="collapse" data-target="#{{ id }}_{{ index }}_content" aria-expanded="true" aria-controls="{{ id }}_{{ index }}_content">
+                {{ group }}
+                <span class="fas fa-fw fa-caret-down align-middle"></span>
+              </a>
+            </h5>
+          </div>
+          <div id="{{ id }}_{{ index }}_content" class="collapse{% if index < 1 %} show{% endif %}" aria-labelledby="{{ id }}_{{ index }}_header" data-parent="#{{ id }}_group">
+            <div class="card-body">
+              <div class="row">
+      {% endif %}
+      {% for option in options %}
+                <div class="col-sm-2 col-md-3 col-lg-4">
+                  <label class="form-check">
+                    <input type="checkbox" class="form-check-input" name="{{ option.name }}"{% if option.value %} value="{{ option.value }}"{% endif %}{% include "django/forms/widgets/attrs.html" with widget=option %}>
+                    <span class="form-check-label">{{ option.label }}</span>
+                  </label>
+                </div>
+      {% endfor %}
+      {% if group %}
+              </div>
+            </div>
+          </div>
+        </div>
+        {% if not forloop.last %}<hr/>{% endif %}
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endwith %}

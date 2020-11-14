@@ -1,0 +1,177 @@
+{% extends "./__base.html" %}
+{% load et_i18n members_tags %}
+
+{% block page-title %}{% trans "agenda:page:reservation_details" %} :: {{ house.name }} :: {{ block.super }}{% endblock %}
+
+{% block breadcrumb %}
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'dashboard:dashboard' %}">{% trans "common:home:breadcrumb" %}</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'board:board' hid=house.id %}">{% trans "agenda:page:title" %}</a></li>
+    <li class="breadcrumb-item active">{% trans "agenda:page:reservation_details" %}</li>
+  </ol>
+{% endblock breadcrumb %}
+
+{% block page-content %}
+  <div class="d-md-flex justify-content-md-between">
+    <h5 class="h5 mb-3">
+      <span class="reservation__guest-name">{{ reservation.get_guest_name }}</span>
+      | {% trans "agenda:page:reservation_number" pk=reservation.get_id %}
+      {% if reservation.status.name == "MODIFY" or reservation.status.name == "CANCEL" or reservation.status.name == "HOLD" %}
+        <span class="reservation__status">[{{ reservation.status.value }}]</span>
+      {% endif %}
+    </h5>
+
+    {% ifperms user PERMISSIONS.board.RESERVATION_DELETE house %}
+      {% if reservation.allow_delete and reservation.status.name != "CANCEL" %}
+        <button type="button" role="button" class="btn btn-danger text-uppercase mb-3" onclick="AgendaJS.cancelReservation()">
+          {% trans "agenda:btn:delete_reservation" %}
+        </button>
+      {% endif %}
+    {% endifperms %}
+  </div>
+
+  <div class="tab reservation__tabs">
+    <ul class="nav nav-tabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <a id="main_tab" href="#tab-1" data-toggle="tab" role="tab" class="nav-link active">{% trans "agenda:tab:main" %}</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a id="guests_tab" href="#tab-2" data-toggle="tab" role="tab" class="nav-link">{% trans "agenda:tab:guests" %}</a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a id="messages_tab" href="#tab-3" data-toggle="tab" role="tab" class="nav-link">{% trans "agenda:tab:messages" %}</a>
+      </li>
+      {% ifperms user PERMISSIONS.invoices.INVOICE_READ house %}
+        <li class="nav-item" role="presentation">
+          <a id="bill_tab" href="#tab-4" data-toggle="tab" role="tab" class="nav-link">{% trans "agenda:tab:bill" %}</a>
+        </li>
+      {% endifperms %}
+      <li class="nav-item" role="presentation">
+        <a id="journal_tab" href="#tab-5" data-toggle="tab" role="tab" class="nav-link">{% trans "agenda:tab:journal" %}</a>
+      </li>
+    </ul>
+    <div class="tab-content">
+
+      <div id="tab-1" class="tab-pane show active" role="tabpanel" aria-labelledby="main_tab">
+        {% include "./details_tab_main.html" %}
+      </div><!--//#tab-1 -->
+
+      <div id="tab-2" class="tab-pane" role="tabpanel" aria-labelledby="guests_tab">
+        {% include "./details_tab_guests.html" %}
+      </div><!--//#tab-2 -->
+
+      <div id="tab-3" class="tab-pane" role="tabpanel" aria-labelledby="messages_tab">
+
+      </div><!--//#tab-3 -->
+
+      {% ifperms user PERMISSIONS.invoices.INVOICE_READ house %}
+        <div id="tab-4" class="tab-pane" role="tabpanel" aria-labelledby="bill_tab">
+          {% include "./details_tab_invoices.html" %}
+        </div><!--//#tab-4 -->
+      {% endifperms %}
+
+      <div id="tab-5" class="tab-pane" role="tabpanel" aria-labelledby="journal_tab">
+
+      </div><!--//#tab-5 -->
+
+    </div>
+  </div>
+
+
+  {% if not reservation.is_verified %}
+    <!-- Modal for Verify Reservation -->
+    <div class="modal fade" tabindex="-1" id="id_verify_modal" aria-labelledby="id_verify_modal_title" aria-hidden="true" data-backdrop="static">
+      <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 id="id_verify_modal_title" class="modal-title">{% trans "agenda:page:verify_title" %}</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'common:btn:close' %}">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" onclick="AgendaJS.saveVerifyForm('#id_verify_modal')">{% trans "agenda:btn:update_verify" %}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
+  <!-- Modal for Update Reservation prices -->
+  <div class="modal fade" tabindex="-1" id="id_prices_modal" aria-labelledby="id_prices_modal_title" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="id_prices_modal_title" class="modal-title">{% trans "agenda:page:prices_modal_title" %}</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'common:btn:close' %}">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="AgendaJS.savePriceForm('#id_prices_modal')">{% trans "agenda:btn:save_prices" %}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template id="id_priceformspinner">
+    <div class="text-center p-5">
+      <div class="spinner-border text-dark">
+        <span class="sr-only">{% trans "common:page:loading" %}</span>
+      </div>
+    </div>
+  </template>
+
+{% endblock page-content %}
+
+{% block head-scripts %}
+  {{ block.super }}
+  <script>
+    AGENDA_CONFIG.URL.CONTACT_FORM_URL = "{% url 'contacts:form-json' hid=house.id %}";
+    AGENDA_CONFIG.URL.ACCEPT_URL = "{% url 'board:accept-reservation' hid=house.id pk=reservation.id %}";
+    AGENDA_CONFIG.URL.CANCEL_URL = "{% url 'board:cancel-reservation' hid=house.id pk=reservation.id %}";
+    AGENDA_CONFIG.URL.GUESTS_URL = "{% url 'contacts:reservation-guests' hid=house.id rid=reservation.id %}";
+    AGENDA_CONFIG.URL.INVOICES_URL = "{% url 'invoices:reservation' hid=house.id rid=reservation.id %}";
+    AGENDA_CONFIG.MSG.EDITABLE_PLACEHOLDER = "{% trans 'contacts:page:empty_value' %}";
+    AGENDA_CONFIG.MSG.CONTACT_UPDATE_OK = "{% trans 'contacts:update:success' %}";
+    AGENDA_CONFIG.MSG.ACCEPT_ASK = "{% trans 'agenda:page:accept_ask' %}";
+    AGENDA_CONFIG.MSG.CANCEL_ASK = "{% trans 'agenda:page:cancel_ask' %}";
+    AGENDA_CONFIG.MSG.VERIFY_SAVE_ASK = "{% trans 'agenda:page:verify_save_ask' %}";
+    AGENDA_CONFIG.MSG.PRICES_SAVE_SUCCESS = "{% trans 'agenda:page:prices_save_success' %}";
+    {% ifperms user PERMISSIONS.invoices.PAYMENT_DELETE house %}
+      AGENDA_CONFIG.URL.CANCEL_PAYMENT_URL = "{% url 'invoices:payment-cancel' hid=house.id rid=reservation.id %}";
+      AGENDA_CONFIG.MSG.CANCEL_PAYMENT_ASK = "{% trans 'invoices:page:payment_cancel_ask' %}";
+    {% endifperms %}
+    {% ifperms user PERMISSIONS.invoices.INVOICE_DELETE house %}
+      AGENDA_CONFIG.URL.CANCEL_INVOICE_URL = "{% url 'invoices:cancel' hid=house.id rid=reservation.id %}";
+      AGENDA_CONFIG.MSG.CANCEL_INVOICE_ASK = "{% trans 'invoices:page:invoice_cancel_ask' %}";
+    {% endifperms %}
+    AGENDA_CONFIG.MSG.INVOICE_ERR = "{% trans 'invoices:error:select_invoice' %}";
+    const RESID = {{ reservation.id }};
+  </script>
+{% endblock head-scripts %}
+
+{% block source-scripts %}
+  {{ block.super }}
+  <script>
+    $(function(){
+      $("[rel=tooltip]").tooltip();
+
+      AgendaJS.loadGuests('#id_reservation_guests');
+      {% ifperms user PERMISSIONS.invoices.INVOICE_READ house %}
+        AgendaJS.loadInvoices('#id_reservation_invoices');
+      {% endifperms %}
+      {% if guest_id %}
+        AgendaJS.loadContactForm('#id_guest_details', {{ guest_id }}, {% if reservation.is_ota and guest_id == reservation.guest_contact_id %}1{% else %}0{% endif %});
+      {% elif reservation.guest_contact_id %}
+        AgendaJS.loadContactForm('#id_guest_details', {{ reservation.guest_contact_id }}, {% if reservation.is_ota %}1{% else %}0{% endif %});
+      {% endif %}
+
+      if (window.location.hash === "#tab-2") {
+        $(".reservation__tabs li:nth-child(2) a").tab("show");
+      }
+    });
+  </script>
+{% endblock source-scripts %}

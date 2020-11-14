@@ -1,0 +1,60 @@
+{% load et_i18n ledger_tags %}
+<div class="container-fluid">
+  <form action="{% url 'board:accept-changes' hid=house.id pk=reservation.id %}" method="post" onsubmit="return false">
+    {% csrf_token %}
+    {% for room in reservation.rooms %}
+      <div class="row">
+        <div class="col">
+          <div class="row">
+            <div class="col-md-3"><strong>{% trans "agenda:page:room_rate" %}</strong></div>
+            <div class="col">{{ room.rate_plan.name|default:'---' }}</div>
+            <div class="col-md-1">
+              <i class="align-middle fas fa-fw fa-long-arrow-alt-right"></i>
+            </div>
+            <div class="col">{{ room.rate_plan_original.name|default:'---' }}</div>
+          </div>
+          <div class="row">
+            <div class="col-md-3"><strong>{% trans "agenda:page:room_period" %}</strong></div>
+            <div class="col">{{ room.checkin|date:'d.M.Y' }} - {{ room.checkout|date:'d.M.Y' }}</div>
+            <div class="col-md-1">
+              <i class="align-middle fas fa-fw fa-long-arrow-alt-right"></i>
+            </div>
+            <div class="col">{{ room.checkin_original|date:'d.M.Y' }} - {{ room.checkout_original|date:'d.M.Y' }}</div>
+          </div>
+        </div>
+
+        <table class="table table-sm table-striped mt-3">
+          <thead>
+
+            <tr>
+              <th>{% trans "agenda:th:date" %}</th>
+              <th>{% trans "agenda:th:room" %}</th>
+              <th class="text-center">{% trans "agenda:th:new_price" %}</th>
+              <th class="text-center">{% trans "agenda:th:old_price" %}</th>
+              <th class="text-center">{% trans "agenda:th:hotel_price" %}</th>
+              <th>&nbsp;</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for price in room.day_prices|dictsort:'day' %}
+              <tr>
+                <td>{{ price.day|date:'d.M.Y' }}</td>
+                <td>{{ price.room_type.name|default:'---' }}</td>
+                <td class="text-center">{{ price.price_changed|money_format:house.currency }}</td>
+                <td class="text-center">{{ price.price_original|money_format:house.currency }}</td>
+                <td class="text-center">{{ price.price_accepted|money_format:house.currency }}</td>
+                <td>
+                  <div class="custom-control custom-switch">
+                    <input type="checkbox" class="custom-control-input" id="id_price_verify_{{ price.id }}" name="price_verify" value="{{ price.id }}" checked="checked">
+                    <label for="id_price_verify_{{ price.id }}" class="custom-control-label"></label>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+      </div>
+    {% endfor %}
+  </form>
+</div>

@@ -1,0 +1,115 @@
+{% load et_i18n ledger_tags %}
+{{ policies|json_script:'id_plan_policies' }}
+<div class="container-fluid">
+  <form action="{% url 'board:save-prices' hid=house.id pk=reservation.id rid=reservation_room.id %}" method="post" onsubmit="return false">
+    {% csrf_token %}
+    <div class="form-group row">
+      <label for="id_rate_plan" class="col-form-label col-md-2">{% trans "agenda:plan:label" %}</label>
+      <div class="col-md-6">
+        <select name="rate_plan" id="id_rate_plan" class="custom-select">
+          <option value="0">{% trans 'common:page:select' %}</option>
+          {% for plan in rate_plans|dictsort:"name" %}
+            <option value="{{ plan.id }}"{% if plan.id == reservation_room.rate_plan_id %} selected="selected"{% endif %}>{{ plan.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-4 pt-1">
+        <a href="javascript:void(0)" tabindex="0" data-toggle="popover" class="policy-popover">{% trans 'agenda:page:cancelation_policy_link' %}</a>
+      </div>
+    </div>
+
+    <div class="form-group row">
+      <label for="id_period" class="col-form-label col-md-2">{% trans "agenda:period:label" %}</label>
+      <div class="col-md-6">
+        {% if reservation.is_ota %}
+          <input type="text" id="id_period" name="period" value="{{ reservation_room.checkin|date:'d.M.Y' }} - {{ reservation_room.checkout|date:'d.M.Y' }}" class="form-control-plaintext" readonly/>
+        {% else %}
+          <input type="text" id="id_period" name="period" value="{{ start_date|date:'d/m/Y' }} - {{ end_date|date:'d/m/Y' }}" class="form-control"/>
+        {% endif %}
+      </div>
+      <label for="id_nights" class="col-form-label col-md-1">{% trans "agenda:nights:label" %}</label>
+      <div class="col-md-3">
+        <p id="id_nights" class="form-control-plaintext calc_nights">{{ nights|default:0 }}</p>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col">
+        <table class="table table-sm table-stripped mt-3">
+          <thead>
+            <tr>
+              <th class="text-center">{% trans "agenda:th:date" %}</th>
+              <th>{% trans "agenda:th:room" %}</th>
+              <th class="w-25 text-center">{% trans "agenda:th:price" %}</th>
+              <th class="text-center">{% trans "agenda:th:ota_price" %}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for price in prices|dictsort:"day" %}
+              <tr>
+                <td>{{ price.day|date:"d.M.Y" }}</td>
+                <td>
+                  <select name="room[{{ price.day|date:'Y-m-d' }}]" class="custom-select">
+                    <option value="0">{% trans "common:page:select" %}</option>
+                    {% for pk, name in rooms %}
+                      <option value="{{ pk }}"{% if pk == price.room_id %} selected="selected"{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                  </select>
+                </td>
+                <td class="text-center">
+                  <div class="input-group">
+                    <input type="text" name="price[{{ price.day|date:'Y-m-d' }}]" value="{{ price.price_accepted|default:'' }}" class="form-control" onkeyup="AgendaJS.recalTotalsPriceForm('#id_prices_modal')">
+                    <div class="input-group-append">
+                      <span class="input-group-text">{{ house.currency }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  {{ price.price_original|money_format:house.currency}}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="2" class="text-right">{% trans "agenda:th:subtotal" %}</td>
+              <td class="text-center"><span id="id_subtotal">{{ totals.accepted_subtotal|money_format:house.currency }}</span></td>
+              <td class="text-center">{{ totals.original_subtotal|money_format:house.currency }}</td>
+            </tr>
+            {% if house.tax > 0 %}
+              <tr>
+                <td colspan="2" class="text-right">{% trans "agenda:th:taxes" tax=house.tax %}</td>
+                <td class="text-center"><span id="id_taxes" data-taxes="{{ house.tax }}">{{ totals.accepted_taxes|money_format:house.currency }}</span></td>
+                <td class="text-center">{{ totals.original_taxes|money_format:house.currency }}</td>
+              </tr>
+            {% endif %}
+            <tr>
+              <th colspan="2" class="text-right">{% trans "agenda:th:total" %}</th>
+              <th class="text-center"><span id="id_total">{{ totals.accepted_total|money_format:house.currency }}</span></th>
+              <th class="text-center">{{ totals.original_total|money_format:house.currency }}</th>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+  </form>
+</div>
+
+<script>
+  try {
+    const planPolicies = JSON.parse(document.getElementById('id_plan_policies').textContent);
+    $('a.policy-popover').popover({
+      container: 'body',
+      content: () => {
+        const plan_id = $('#id_rate_plan').val();
+        if (!plan_id || plan_id === 0 || planPolicies[plan_id] === undefined) {
+          return "{% trans 'agenda:page:no_assigned_policy' %}";
+        }
+        return planPolicies[plan_id];
+      },
+      placement: 'top',
+      trigger: 'focus'
+    });
+  } catch (e){}
+</script>

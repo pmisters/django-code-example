@@ -1,0 +1,50 @@
+{% load et_i18n members_tags %}
+<div class="row">
+  <div class="col-12 col-md-6">
+
+    <div class="row mb-4">
+      <div class="col-12">
+        <span class="text-nowrap mr-2">
+          <strong>{% trans "agenda:adults:label" %}:</strong> {{ reservation.get_total_adults|default:"-" }}
+        </span>
+        <span class="text-nowrap">
+          <strong>{% trans "agenda:children:label" %}:</strong> {{ reservation.get_total_children|default:"-" }}
+        </span>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <div class="d-flex justify-content-between">
+          <h4 class="h4">{% trans "agenda:page:guest_details" %}</h4>
+          {% ifperms user PERMISSIONS.board.RESERVATION_UPDATE house %}
+            {% ifperms user PERMISSIONS.contacts.CONTACT_UPDATE house %}
+              <button type="button" role="button" class="btn btn-outline-success btn-sm" onclick="AgendaJS.loadContactForm('#id_guest_details', 0)">
+                {% trans "agenda:btn:add_guest" %}
+              </button>
+            {% endifperms %}
+          {% endifperms %}
+        </div>
+
+        <hr/>
+
+        <div id="id_guest_details"></div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <div class="col-12 col-md-6 guests__list reservation-gutter">
+    <h4 class="h4 mb-3">{% trans "agenda:page:full_guests_list" %}</h4>
+    <div id="id_reservation_guests"></div>
+  </div><!--//.guests__list -->
+</div>
+
+<template id="id_guest_spinner">
+  <div class="d-flex justify-content-center">
+    <div class="spinner-border text-primary m-4">
+      <span class="sr-only">{% trans "common:page:loading" %}</span>
+    </div>
+  </div>
+</template>

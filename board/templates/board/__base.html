@@ -1,0 +1,18 @@
+{% extends "__l_corporate.html" %}
+{% load et_i18n %}
+
+{% block head-scripts %}
+  {{ block.super }}
+  <script>
+    const CSRF_TOKEN = "{{ csrf_token }}";
+    const AGENDA_CONFIG = {
+      MSG: {
+        ACCESS_DENIED: "{% trans 'common:error:access' %}",
+        SYSTEM_ERROR: "{% trans 'common:error:system' %}",
+        LOADING: "{% trans 'common:page:loading' %}",
+      },
+      URL: {
+      }
+    };
+  </script>
+{% endblock head-scripts %}

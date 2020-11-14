@@ -1,0 +1,277 @@
+{% load et_i18n ledger_tags %}
+{% if house %}
+  <a href="#" role="button" class="ml-3 btn btn-link text-secondary font-weight-bold" onclick="ETJS.openReservationModal('#id_reservation_modal')">
+    <i class="fa fa-plus-circle text-success"></i> {% trans "agenda:top:new_reservation" %}
+  </a>
+
+  <!-- Modal for Reservation -->
+  <div id="id_reservation_modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="id_reservation_modal_title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="id_reservation_modal_title">{% trans "agenda:top:select_reservation_type" %}</h3>
+          <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'common:btn:close' %}">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div><input type="hidden" id="id_restype" name="restype" value="" /></div>
+
+          <div class="modal__tab tab__select">
+            <div class="mt-5 mb-5 d-flex justify-content-center">
+              <button type="button" class="btn btn-success btn-lg mr-5" onclick="ETJS.setCreateReservation('#id_reservation_modal')">{% trans "agenda:top:create_reservation" %}</button>
+              <button type="button" class="btn btn-success btn-lg" onclick="ETJS.setCloseRoom('#id_reservation_modal')">{% trans "agenda:top:close_room" %}</button>
+            </div>
+          </div><!--//.tab__select -->
+          <div class="modal__tab tab__room d-none">
+            <form action="{% url 'board:create-close' hid=house.id %}" method="post" class="room-form" onsubmit="return false">
+              {% csrf_token %}
+              <div class="form-group row">
+                <label for="id_period" class="col-form-label col-md-2">{% trans "agenda:period:label" %}</label>
+                <div class="col-md-5">
+                  <input type="text" id="id_period" name="period" value="" class="form-control"/>
+                </div>
+                <label for="id_nights" class="col-form-label col-md-1">{% trans "agenda:nights:label" %}</label>
+                <div class="col-md-4">
+                  <p id="id_nights" class="form-control-plaintext calc_nights">---</p>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label for="id_room" class="col-form-label col-md-2">{% trans "agenda:room:label" %}</label>
+                <div class="col-md-5">
+                  <select id="id_room" name="room" class="custom-select">
+                    <option value=""></option>
+                    {% for value, name in rooms %}
+                      <option value="{{ value }}">{{ name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label for="id_status" class="col-form-label col-md-2">{% trans "agenda:status:label" %}</label>
+                <div class="col-md-5">
+                  <select id="id_status" name="status" class="custom-select">
+                    <option value=""></option>
+                    {% for value, name in close_reasons %}
+                      <option value="{{ value }}">{{ name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label for="id_notes" class="col-form-label col-md-2">{% trans "agenda:notes:label" %}</label>
+                <div class="col-md-10">
+                  <input type="text" id="id_notes" name="notes" value="" class="form-control"/>
+                </div>
+              </div>
+            </form>
+          </div> <!--//.tab__room -->
+
+          <div class="modal__tab tab__reservation d-none">
+            <form action="{% url 'board:create-reservation' hid=house.id %}" method="post" class="reservation-form" onsubmit="return false">
+              {% csrf_token %}
+              <div class="form-group row">
+                <label for="id_room_type" class="col-form-label col-md-2">{% trans "agenda:room_type:label" %}</label>
+                <div class="col-md-5">
+                  <select id="id_room_type" name="room_type" class="custom-select">
+                    <option value=""></option>
+                    {% for room_type in room_types|dictsort:"name" %}
+                      <option value="{{ room_type.id }}">{{ room_type.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label for="id_plan" class="col-form-label col-md-2">{% trans "agenda:plan:label" %}</label>
+                <div class="col-md-5">
+                  <select id="id_plan" name="plan" class="custom-select">
+                    <option value=""></option>
+                    {% for plan in rate_plans|dictsort:"name" %}
+                      <option value="{{ plan.id }}">{{ plan.name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+                <div class="col-md-5">
+                  <a href="javascript:void(0)" tabindex="0" data-toggle="popover" class="btn btn-link top-policy-popover">{% trans 'agenda:page:cancelation_policy_link' %}</a>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label for="id_period" class="col-form-label col-md-2">{% trans "agenda:period:label" %}</label>
+                <div class="col-md-5">
+                  <input type="text" id="id_period" name="period" value="" class="form-control"/>
+                </div>
+                <label for="id_nights" class="col-form-label col-md-1">{% trans "agenda:nights:label" %}</label>
+                <div class="col-md-4">
+                  <p id="id_nights" class="form-control-plaintext calc_nights">---</p>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label for="id_guest_name" class="col-form-label col-md-2">{% trans "agenda:guest_name:label" %}</label>
+                <div class="col-md-5">
+                  <div class="input-group">
+                    <input type="text" id="id_guest_name" name="guest_name" value="" class="form-control" placeholder="{% trans 'agenda:guest_name:placeholder' %}"/>
+                    <input type="text" id="id_guest_surname" name="guest_surname" value="" class="form-control" placeholder="{% trans 'agenda:guest_surname:placeholder' %}"/>
+                  </div>
+                </div>
+                <label for="id_guest_count" class="col-form-label col-md-1">{% trans "agenda:guest_count:label" %}</label>
+                <div class="col-md-2">
+                  <select id="id_guest_count" name="guest_count" class="custom-select">
+                    {% for value, name in occupancies %}
+                      <option value="{{ value }}">{{ name }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label for="id_guest_email" class="col-form-label col-md-2">{% trans "agenda:guest_email:label" %}</label>
+                <div class="col-md-5">
+                  <input type="email" id="id_guest_email" name="guest_email" value="" class="form-control"/>
+                </div>
+                <label for="id_guest_phone" class="col-form-label col-md-1">{% trans "agenda:guest_phone:label" %}</label>
+                <div class="col-md-4">
+                  <div class="input-group">
+                    <select name="guest_phone_code" class="custom-select" style="max-width: 34%">
+                      <option value=""></option>
+                      {% for value, name in phone_codes %}
+                        <option value="{{ value }}">{{ name }}</option>
+                      {% endfor %}
+                    </select>
+                    <input type="text" id="id_guest_phone" name="guest_phone" value="" class="form-control" />
+                  </div>
+                </div>
+              </div>
+              <div class="form-group row">
+                <label for="id_notes" class="col-form-label col-md-2">{% trans "agenda:notes:label" %}</label>
+                <div class="col-md-10">
+                  <input type="text" id="id_notes" name="notes" value="" class="form-control"/>
+                </div>
+              </div>
+            </form>
+          </div> <!--//.tab__reservation -->
+
+        </div> <!--//.modal-body -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-success invisible" onclick="ETJS.saveReservation('#id_reservation_modal', '#id_res_prices_modal')">{% trans "agenda:btn:confirm" %}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!--// Modal for Reservation -->
+
+  <!-- Modal for Reservation Prices -->
+  <div id="id_res_prices_modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="id_res_prices_modal_title" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 class="modal-title" id="id_res_prices_modal_title">{% trans "agenda:top:prices_confirm" %}</h3>
+          <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'common:btn:close' %}">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+
+          <form action="{% url 'board:save-reservation' hid=house.id %}" method="post" class="reservation-form" onsubmit="return false">
+            {% csrf_token %}
+            <div class="form-group row">
+              <label for="id_plan" class="col-form-label col-md-2">{% trans "agenda:plan:label" %}</label>
+              <div class="col-md-5">
+                <select id="id_plan" name="plan" class="custom-select" onchange="ETJS.recalcReservation('#id_res_prices_modal')">
+                  <option value=""></option>
+                  {% for plan in rate_plans|dictsort:"name" %}
+                    <option value="{{ plan.id }}">{{ plan.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-5">
+                <a href="javascript:void(0)" tabindex="0" data-toggle="popover" class="btn btn-link top-policy-popover">{% trans 'agenda:page:cancelation_policy_link' %}</a>
+              </div>
+            </div>
+            <div class="form-group row">
+              <label for="id_rate" class="col-form-label col-md-2">{% trans "agenda:rate:label" %}</label>
+              <div class="col-md-5">
+                <select id="id_rate" name="rate" class="custom-select" onchange="ETJS.recalcReservation('#id_res_prices_modal')">
+                  <option value=""></option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col">
+                <table id="id_daily_prices" class="table table-sm">
+                  <thead>
+                    <tr>
+                      <th scope="col" class="text-center w-25">{% trans "agenda:date:label" %}</th>
+                      <th scope="col">{% trans "agenda:room_type:label" %}</th>
+                      <th scope="col" class="text-center w-25">{% trans "agenda:price:label" %}</th>
+                    </tr>
+                  </thead>
+                  <tbody />
+                  <tfoot>
+                    <tr>
+                      <td colspan="2" class="text-right">{% trans "agenda:th:subtotal" %}</td>
+                      <td class="text-center price__subtotal">0.00</td>
+                    </tr>
+                    {% if house.tax > 0 %}
+                      <tr>
+                        <td colspan="2" class="text-right">{% trans "agenda:th:taxes" tax=house.tax %}</td>
+                        <td class="text-center price__taxes" data-taxes="{{ house.tax }}">0.00</td>
+                      </tr>
+                    {% endif %}
+                    <tr>
+                      <th colspan="2" class="text-right">{% trans "agenda:total:label" %}</th>
+                      <th class="text-center price__total">0.00</th>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </form>
+
+        </div> <!--//.modal-body -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-success" onclick="ETJS.confirmSaveReservation('#id_res_prices_modal')">{% trans "agenda:btn:confirm" %}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <template id="id_pricerow">
+    <tr>
+      <td class="text-center pricerow__day"></td>
+      <td class="pricerow__room"></td>
+      <td class="pricerow__amount">
+        <div class="input-group">
+          <input type="text" name="prices" value="" class="form-control"/>
+          <div class="input-group-append">
+            <span class="input-group-text">{{ house.currency }}</span>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </template>
+  <template id="id_pricespinner">
+    <tr>
+      <td colspan="3" class="text-center p-3">
+        <div class="spinner-border text-dark">
+          <span class="sr-only">{% trans "common:page:loading" %}</span>
+        </div>
+      </td>
+    </tr>
+  </template>
+
+  {{ policies|json_script:'id_top_policies' }}
+  <script>
+    const RESERVATION_MSG = {
+      SAVE_ERROR: "{% trans 'agenda:error:save_reservation' %}",
+      SAVE_OK: "{% trans 'agenda:top:success_save' %}",
+      ACCESS_DENIED: "{% trans 'common:error:access' %}",
+      SYSTEM_ERROR: "{% trans 'common:error:system' %}",
+      TITLE_CREATE_RESERVATION: "{% trans 'agenda:top:new_reservation' %}",
+      TITLE_CLOSE_ROOM: "{% trans 'agenda:top:close_room' %}",
+      TITLE_SELECT_TYPE: "{% trans 'agenda:top:select_reservation_type' %}",
+      PLAN_WITHOUT_POLICY: "{% trans 'agenda:page:no_assigned_policy' %}",
+      PLAN_REQUIRED: "{% trans 'agenda:plan:error' %}",
+    };
+    const RESERVATION_CALC_URL = "{% url 'board:calculate-reservation' hid=house.id %}";
+    const MONEY_FORMAT = "{{ 0|money_format:house.currency }}";
+  </script>
+{% endif %}

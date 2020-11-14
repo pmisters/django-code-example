@@ -1,0 +1,173 @@
+{% load et_i18n ledger_tags members_tags %}
+<div class="row">
+  <div class="col-12 col-sm-6 col-md-7 col-lg-8 col-xl-9">
+
+    {% ifperms user PERMISSIONS.board.RESERVATION_UPDATE house %}
+      <div class="mb-3">
+        {% if not reservation.is_verified and reservation.is_ota %}
+          <button class="btn btn-outline-warning" onclick="AgendaJS.showVerifyForm('#id_verify_modal', '{% url "board:verify-changes" hid=house.id pk=reservation.id %}')">{% trans "agenda:btn:verify" %}</button>
+        {% endif %}
+        {% if reservation.status.name == "HOLD" %}
+          <button class="btn btn-outline-success" onclick="AgendaJS.acceptReservation()">{% trans "agenda:btn:accept" %}</button>
+        {% endif %}
+        <button class="btn btn-outline-secondary" disabled>{% trans "agenda:btn:checkedin" %}</button>
+        <button class="btn btn-outline-secondary" disabled>{% trans "agenda:btn:noshow" %}</button>
+      </div>
+    {% endifperms %}
+
+    <div class="mb-2">
+      <span class="text-nowrap mr-2">
+        <strong>{% trans "agenda:client:label" %}:</strong> {{ reservation.get_guest_name }}
+      </span>
+      {% if reservation.guest_email or reservation.guest_phone %}
+        <span class="text-nowrap">
+          {% if reservation.guest_email %}
+            <span class="text-nowrap mr-2">
+              <a href="mailto:{{ reservation.guest_email }}">{{ reservation.guest_email }}</a>
+            </span>
+          {% endif %}
+          {% if reservation.guest_phone %}
+            <span class="text-nowrap">
+              <i class="fas fa-fw fa-phone"></i> {{ reservation.guest_phone }}
+            </span>
+          {% endif %}
+        </span>
+      {% endif %}
+    </div>
+    <div class="mb-2">
+      <span class="text-nowrap mr-2">
+        <strong>{% trans "agenda:checkin:label" %}:</strong> {{ reservation.get_checkin_time|date:"d.M.Y H:i" }}
+      </span>
+      <span class="text-nowrap mr-2">
+        <strong>{% trans "agenda:checkout:label" %}:</strong> {{ reservation.get_checkout_time|date:"d.M.Y H:i" }}
+      </span>
+      <span class="text-nowrap">
+        <strong>{% trans "agenda:nights:label" %}:</strong> {{ reservation.get_nights }}
+      </span>
+    </div>
+    <div class="mb-2">
+      <span class="text-nowrap mr-2">
+        <strong>{% trans "agenda:adults:label" %}:</strong> {{ reservation.get_total_adults|default:"-" }}
+      </span>
+      <span class="text-nowrap">
+        <strong>{% trans "agenda:children:label" %}:</strong> {{ reservation.get_total_children|default:"-" }}
+      </span>
+    </div>
+  </div>
+  <div class="col-12 col-sm-6 col-md-5 col-lg-4 col-xl-3">
+    <table class="table table-sm table-borderless reservation__summary">
+      <tbody>
+        <tr>
+          <th class="text-right">{% trans "agenda:summary:price" %}</th>
+          <td colspan="text-right">{{ reservation.price_accepted|money_format:house.currency }}</td>
+        </tr>
+        <tr>
+          <th class="text-right">{% trans "agenda:summary:extra" %}</th>
+          <td colspan="text-right">{{ 0|money_format:house.currency }}</td>
+        </tr>
+        <tr class="table-success">
+          <th class="text-right">{% trans "agenda:summary:total" %}</th>
+          <td colspan="text-right">{{ reservation.price_accepted|money_format:house.currency }}</td>
+        </tr>
+        <tr>
+          <th class="text-right">{% trans "agenda:summary:payed" %}</th>
+          <td colspan="text-right">{{ payed_amount|money_format:house.currency }}</td>
+        </tr>
+        <tr class="text-danger border-danger">
+          <th class="text-right">{% trans "agenda:summary:balance" %}</th>
+          <td colspan="text-right">{{ pending_balance|money_format:house.currency }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="reservation__rooms">
+      <h4 class="h4 mb-2">{% trans "agenda:page:rooms_subtitle" %}</h4>
+      {% for item in reservation_rooms %}
+        <div class="row mb-4">
+          <div class="col-12">
+            <div class="row">
+              <div class="col-12">
+                {% if reservation.is_ota %}
+                  {{ item.room.external_name|default:"---" }}
+                {% else %}
+                  {% trans "agenda:page:direct_booking" %}
+                {% endif %}
+                &nbsp;|&nbsp;
+                {{ item.room.rate_plan.name|default:"--" }}
+                {% if item.room.policy %}
+                  &nbsp;|&nbsp;
+                  <a tabindex="0" data-toggle="popover" data-trigger="hover" title="" data-content="{{ item.room.policy.name }}" data-container="body">
+                    <strong>{% trans "agenda:page:cancelation_policy" %}</strong>
+                    <i class="fas fa-fw fa-coins text-warning"></i>
+                  </a>
+                {% endif %}
+                {% if reservation.allow_update_prices %}
+                  <button type="button" role="button" class="btn btn-sm btn-outline-success ml-3" onclick="AgendaJS.showPriceForm('#id_prices_modal', '{% url "board:show-prices" hid=house.id pk=reservation.id rid=item.room.id %}')">{% trans "common:btn:edit" %}</button>
+                {% endif %}
+              </div>
+            </div>
+            {% for period in item.periods %}
+              <div class="row mt-2">
+                <div class="col-6 col-lg-3 col-md-4 col-sm-5 pl-4">
+                  - {{ period.room_type.name }} {% if period.room %} | {{ period.room.name }}{% endif %}
+                </div>
+                <div class="col-6 col-lg-8">
+                  {{ period.start_date|date:"d.M.Y" }} &mdash; {{ period.end_date|date:"d.M.Y" }}
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="reservation__services">
+      <div class="d-flex justify-content-between mb-2">
+        <h4 class="h4">{% trans "agenda:page:services_subtitle" %}</h4>
+        <button type="button" class="btn btn-outline-success">{% trans "agenda:btn:services" %}</button>
+      </div>
+      {% for service in services %}
+      {% empty %}
+        <div class="alert text-muted justify-content-center" role="alert">
+          {% trans "agenda:page:no_services" %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-12">
+    <div class="reservation__source">
+      <span class="text-nowrap mr-2">
+        <strong>{% trans "agenda:source:label" %}:</strong>
+        {% if reservation.is_ota %}
+          {{ reservation.source.value }}
+        {% else %}
+          <span class="editable editable-click">{{ reservation.source.value }}</span>
+        {% endif %}
+      </span>
+      {% if reservation.channel_id %}
+        <span class="text-nowrap">
+          <strong>{% trans "agenda:sourcenr:label" %}:</strong>
+          {{ reservation.channel_id|default:'-' }}
+        </span>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<div class="row mt-4">
+  <div class="col-12">
+    <h4 class="h4 mb-2">Tasks</h4>
+  </div>
+</div>
